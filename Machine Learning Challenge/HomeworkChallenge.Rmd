@@ -1,0 +1,135 @@
+---
+title: "Coursera Machine Learning Project"
+author: "Samuel Kilchenmann"
+date: "21 Februar 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading and preparing the data
+
+We start by loading the data and all the libraries required for the project, before importing the dataset.
+
+
+```{r loading, message = FALSE, warning = FALSE}
+# loading the libraries
+library(caret); library(e1071); library(rpart)
+library(parallel); library(doParallel)
+
+# loading the data
+testing <- read.csv('pml-testing.csv')
+training <- read.csv('pml-training.csv')
+```
+
+## Cleaning the dataset
+
+We remove all the NA columns of the dataset, as well as the first seven columns, as none of these columns contain important information for the
+fitting. Furthermore, we convert the variable classe into a factor variable.
+
+```{r dataprocessing}
+# remove NA columns
+training <- training[,colSums(is.na(testing)) < nrow(testing)]
+testing <- testing[,colSums(is.na(testing)) < nrow(testing)]
+
+# remove first seven columns
+training <- training[,-c(1:7)]
+testing <- testing[, -c(1:7)]
+
+# Converting the classe variable to a factor
+training$classe <- as.factor(training$classe)
+```
+
+
+## Splitting the dataset
+
+In order to analyze the performance of the different models, we split the training set further up, into a training and validation set. This allows us to test the accuracy of the model before applying it to the final model. We use a 75% to 25% split ratio between training and validation.
+
+```{r splitting}
+# Split the data into training and validation data
+inTrain = createDataPartition(training$classe, p = 3/4)[[1]]
+train <- training[inTrain, ]
+validate <- training[-inTrain, ]
+```
+
+## Setting up parallel processing
+As there is quite a lot of data to process and we will build different models, we set up the machine to use multiple threads and to take advantage of parallel processing features to speed up the calculation times. Furthermore, we will use crossvalitation to increase the model accuracy.
+
+```{r parallel}
+# configure parallel processing
+cluster <- makeCluster(detectCores() - 1) #Leave one core for OS
+registerDoParallel(cluster)
+
+fitControl <- trainControl(method = "cv", number = 5, allowParallel = TRUE)
+```
+
+
+## Building the models
+In the next step we will build different models to test which one performs the best. The models chosen are Random Fores, Gradient Boosting, Linear Discriminant analysis, Support Vector Machine and Classification trees. Ones the models are established, we will use the predict method to compare and validate the results, making use of the validate data set.
+
+```{r models, cache = TRUE, message=FALSE, warning=FALSE, results='hide'}
+# Build the models
+mod_rf <- train(classe ~ ., method = 'rf', data = train, trControl = fitControl)
+mod_gbm <- train(classe ~ ., method = 'gbm', data = train, trControl = fitControl)
+mod_lda <- train(classe ~ ., method = 'lda', data = train, trControl = fitControl)
+mod_svm <- svm(classe ~ ., data = training)
+mod_rpart <- train(classe ~ ., method = "rpart", data= train, trControl = fitControl)
+
+# predict the results
+predict_rf <- predict(mod_rf, validate)
+predict_gbm <- predict(mod_gbm, validate)
+predict_lda <- predict(mod_lda, validate)
+predict_svm <- predict(mod_svm, validate)
+predict_rpart <- predict(mod_rpart, validate)
+```
+
+## Create the confusion matrix and calculate the accuracy for each result
+Finally, we will make use of the confusion matrix to compare the different methods, based on their accuracy.
+```{r accuracy}
+# Calculate the confusion matrix and prediction results
+conf_rf <- confusionMatrix(validate$classe, predict_rf)
+accuracy_rf <- conf_rf$overall[[1]]
+
+conf_gbm <- confusionMatrix(validate$classe, predict_gbm)
+accuracy_gbm <- conf_gbm$overall[[1]]
+
+conf_lda <- confusionMatrix(validate$classe, predict_lda)
+accuracy_lda <- conf_lda$overall[[1]]
+
+conf_svm <- confusionMatrix(validate$classe, predict_svm)
+accuracy_svm <- conf_svm$overall[[1]]
+
+conf_rpart <- confusionMatrix(validate$classe, predict_rpart)
+accuracy_rpart <- conf_rpart$overall[[1]]
+
+acc = c(accuracy_rf, accuracy_gbm, accuracy_lda, accuracy_svm, accuracy_rpart)
+acc_names = c("Random Forest", "Gradient Boosting", "LDA", "SVM", "Classification Trees")
+accuracy_df = data.frame(Model = acc_names, Accuracy = acc)
+accuracy_df
+```
+
+These results show that the top performing models are the Random Forest (`r paste(toString(round(accuracy_rf*100,2)),"%", sep="")`), 
+Support Vector Machine (`r paste(toString(round(accuracy_svm*100,2)),"%", sep="")`),
+and Gradient Boosting (`r paste(toString(round(accuracy_gbm*100,2)),"%", sep="")`)
+ones, all of them with accuracies above 95%. While Linear Discriminant Analysis only reaches `r paste(toString(round(accuracy_lda*100,2)),"%", sep="")`
+accuracy and the classification trees `r paste(toString(round(accuracy_rpart*100,2)),"%", sep="")`.
+
+## Predicting the results on the testing set
+Finally, we use the Random Forest model to predict the classe variable of the Testing Set.
+
+```{r predicting}
+# Prediction on Testing Set
+predict(mod_rf, testing)
+```
+
+
+## Cleaning up and de-registering the parallel processing cluster
+Last, we have to free up the hardware resources and de-register the parallel processing cluster.
+```{r}
+# De-register parallel processing cluster
+stopCluster(cluster)
+registerDoSEQ()
+```
+

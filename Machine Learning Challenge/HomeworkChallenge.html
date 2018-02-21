@@ -160,7 +160,7 @@ validate &lt;- training[-inTrain, ]</code></pre>
 </div>
 <div id="setting-up-parallel-processing" class="section level2">
 <h2>Setting up parallel processing</h2>
-<p>As there is quite a lot of data to process and we will build different models, we set up the machine to use multiple threads and to take advantage of parallel processing features to speed up the calculation times. Furthermore, we will use crossvalitation to increase the model accuracy.</p>
+<p>As there is quite a lot of data to process and we will build different models, we set up the machine to use multiple threads and to take advantage of parallel processing features to speed up the calculation times. Furthermore, we configure the method for using crossvalidation to increase the model accuracy.</p>
 <pre class="r"><code># configure parallel processing
 cluster &lt;- makeCluster(detectCores() - 1) #Leave one core for OS
 registerDoParallel(cluster)
@@ -214,6 +214,7 @@ accuracy_df</code></pre>
 ## 4                  SVM 0.9626835
 ## 5 Classification Trees 0.4896003</code></pre>
 <p>These results show that the top performing models are the Random Forest (99.53%), Support Vector Machine (96.27%), and Gradient Boosting (95.84%) ones, all of them with accuracies above 95%. While Linear Discriminant Analysis only reaches 70.29% accuracy and the classification trees 48.96%.</p>
+<p>Accordingly, the out of sample error is very small and in the case of Random Forest it is only 0.47%.</p>
 </div>
 <div id="predicting-the-results-on-the-testing-set" class="section level2">
 <h2>Predicting the results on the testing set</h2>

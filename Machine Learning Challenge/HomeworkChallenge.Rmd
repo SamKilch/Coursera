@@ -55,7 +55,7 @@ validate <- training[-inTrain, ]
 ```
 
 ## Setting up parallel processing
-As there is quite a lot of data to process and we will build different models, we set up the machine to use multiple threads and to take advantage of parallel processing features to speed up the calculation times. Furthermore, we will use crossvalitation to increase the model accuracy.
+As there is quite a lot of data to process and we will build different models, we set up the machine to use multiple threads and to take advantage of parallel processing features to speed up the calculation times. Furthermore, we configure the method for using crossvalidation to increase the model accuracy.
 
 ```{r parallel}
 # configure parallel processing
@@ -115,6 +115,8 @@ Support Vector Machine (`r paste(toString(round(accuracy_svm*100,2)),"%", sep=""
 and Gradient Boosting (`r paste(toString(round(accuracy_gbm*100,2)),"%", sep="")`)
 ones, all of them with accuracies above 95%. While Linear Discriminant Analysis only reaches `r paste(toString(round(accuracy_lda*100,2)),"%", sep="")`
 accuracy and the classification trees `r paste(toString(round(accuracy_rpart*100,2)),"%", sep="")`.
+
+Accordingly, the out of sample error is very small and in the case of Random Forest it is only `r paste(toString(round((1-accuracy_rf)*100,2)),"%", sep="")`.
 
 ## Predicting the results on the testing set
 Finally, we use the Random Forest model to predict the classe variable of the Testing Set.
